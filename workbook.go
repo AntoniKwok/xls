@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"os"
 	"unicode/utf16"
 )
 
@@ -20,12 +19,18 @@ type WorkBook struct {
 	sheets         []*WorkSheet
 	Author         string
 	rs             io.ReadSeeker
+	closer         io.Closer
 	sst            []string
 	continue_utf16 uint16
 	continue_rich  uint16
 	continue_apsb  uint32
 	dateMode       uint16
 }
+
+// maxSstEntries bounds the shared-string table so a corrupt count cannot
+// exhaust memory. 4M unique strings is far beyond any real attendance or
+// payroll workbook.
+const maxSstEntries = 1 << 22
 
 //read workbook from ole2 file
 func newWorkBookFromOle2(rs io.ReadSeeker) *WorkBook {
@@ -63,7 +68,7 @@ func (w *WorkBook) addFont(font *FontInfo, buf io.ReadSeeker) {
 
 func (w *WorkBook) addFormat(format *Format) {
 	if w.Formats == nil {
-		os.Exit(1)
+		w.Formats = make(map[uint16]*Format)
 	}
 	w.Formats[format.Head.Index] = format
 }
@@ -111,6 +116,10 @@ func (wb *WorkBook) parseBof(buf io.ReadSeeker, b *bof, pre *bof, offset_pre int
 	case 0xfc: // SST
 		info := new(SstInfo)
 		binary.Read(buf_item, binary.LittleEndian, info)
+		if info.Count > maxSstEntries {
+			// a corrupt count would otherwise allocate gigabytes
+			info.Count = 0
+		}
 		wb.sst = make([]string, info.Count)
 		var size uint16
 		var i = 0
@@ -300,4 +309,12 @@ func (w *WorkBook) ReadAllCells(max int) (res [][]string) {
 		}
 	}
 	return
+}
+
+// Close releases the file opened by Open. It is a no-op for OpenReader.
+func (w *WorkBook) Close() error {
+	if w == nil || w.closer == nil {
+		return nil
+	}
+	return w.closer.Close()
 }
