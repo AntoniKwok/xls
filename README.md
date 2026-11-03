@@ -1,3 +1,15 @@
+> **Patched fork.** This is [extrame/xls](https://github.com/extrame/xls) `v0.0.1` plus fixes for crashes
+> on real-world files (upstream has not been released since 2017). See [PATCHES.md](PATCHES.md).
+> Also fixed upstream via [#105](https://github.com/extrame/xls/pull/105), [#106](https://github.com/extrame/xls/pull/106), [#107](https://github.com/extrame/xls/pull/107).
+>
+> Use it from your own module:
+>
+> ```
+> replace github.com/extrame/xls => github.com/AntoniKwok/xls v0.0.2
+> replace github.com/extrame/ole2 => github.com/AntoniKwok/ole2 v0.0.1
+> ```
+> (`ole2` is needed too: it contains the stream-reader fixes.)
+
 # xls
 
 [![GoDoc](https://godoc.org/github.com/extrame/xls?status.svg)](https://godoc.org/github.com/extrame/xls)
